@@ -1,17 +1,23 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 use std::string::ParseError;
-
-use rand::Rng;
+use rand::{self, CryptoRng, Rng};
+use rand_hc::Hc128Rng;
+use rand_core::SeedableRng;
+use rand_isaac::Isaac64Rng;
 
 #[allow(dead_code)]
 fn main() {
+    let mut rng = Hc128Rng::from_rng(Isaac64Rng::seed_from_u64(rand::thread_rng().gen::<u64>())).expect("failed to create RNG");
     'recreate: loop {
         clear();
         let options: Options = read_input();
+        if options.len == 0 {
+            continue 'recreate;
+        }
         'save_options: loop {
             clear();
-            let chars = generate_random_chars(&options);
+            let chars = generate_random_chars(&mut rng, &options);
             write(&chars);
             match getch_answer() {
                 Answer::Recreate => continue 'save_options,
@@ -121,7 +127,7 @@ impl Answer {
     }
 }
 
-fn generate_random_chars(&options: &Options) -> Vec<char> {
+fn generate_random_chars(rng: &mut (impl Rng + CryptoRng), &options: &Options) -> Vec<char> {
     let lowercase = "abcdefghijklmnopqrstuvwxyz";
     let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let numbers = "0123456789";
@@ -144,7 +150,6 @@ fn generate_random_chars(&options: &Options) -> Vec<char> {
         panic!("You bypassed something smh");
     }
 
-    let mut rng = rand::thread_rng();
     let population = population.chars().collect::<Vec<char>>();
     let pop_len = population.len();
     let mut result = Vec::new();
