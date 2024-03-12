@@ -6,12 +6,11 @@ use rand_hc::Hc128Rng;
 use rand_core::SeedableRng;
 use rand_isaac::Isaac64Rng;
 
-#[allow(dead_code)]
 fn main() {
     let mut rng = Hc128Rng::from_rng(Isaac64Rng::seed_from_u64(rand::thread_rng().gen::<u64>())).expect("failed to create RNG");
     'recreate: loop {
-        clear();
         let options: Options = read_input();
+<<<<<<< HEAD
         if options.len == 0 {
             continue 'recreate;
         }
@@ -19,6 +18,16 @@ fn main() {
             clear();
             let chars = generate_random_chars(&mut rng, &options);
             write(&chars);
+=======
+        let mut show_options = true;
+        'save_options: loop {
+            let chars = generate_random_chars(&options);
+            write(&chars, show_options);
+            // only show options once
+            if show_options {
+                show_options = false;
+            }
+>>>>>>> c096db5 (made it s.t. it doesn't flush the screen every time it reset)
             match getch_answer() {
                 Answer::Recreate => continue 'save_options,
                 Answer::StartOver => continue 'recreate,
@@ -57,10 +66,7 @@ struct Letters {
 impl Letters {
     fn iter(&self) -> LettersAsIter {
         let letters = self.clone();
-        return LettersAsIter {
-            letters,
-            iter: 0,
-        };
+        return LettersAsIter { letters, iter: 0 };
     }
 }
 
@@ -169,25 +175,27 @@ fn getch_answer() -> Answer {
     }
 }
 
-
-fn write(vec: &Vec<char>) {
+fn write(vec: &Vec<char>, should_show_options: bool) {
     let count = vec.len();
     let mut chars = String::new();
     for char in vec.iter() {
         chars.push(*char);
     }
-    print!("\
-{count} characters generated:
-{chars}
-
+    if should_show_options {
+        println!(
+            "\
+{count} characters generated:"
+        );
+    }
+    println!("{chars}");
+    if should_show_options {
+        println!(
+            "
 Press \"s\" to start over
 Press \"r\" to recreate
-Press any other key to exit...");
-    print!("\n");
-}
-
-fn clear() {
-    print!("{}[2J", 27 as char);
+Press any other key to exit..."
+        );
+    }
 }
 
 fn ask<T: FromStr>(msg: &str, err_msg: &str, validator: Option<fn(x: &T) -> bool>) -> T {
@@ -202,7 +210,6 @@ fn ask<T: FromStr>(msg: &str, err_msg: &str, validator: Option<fn(x: &T) -> bool
         match result {
             Some(r) if validator(&r) => return r,
             _else => {
-                clear();
                 print!("{}", err_msg);
                 continue;
             }
@@ -214,7 +221,9 @@ fn prompt() -> String {
     use std::io::{stdin, stdout, Write};
     let mut s = String::new();
     let _ = stdout().flush();
-    stdin().read_line(&mut s).expect("Did not enter a correct string");
+    stdin()
+        .read_line(&mut s)
+        .expect("Did not enter a correct string");
     if let Some('\n') = s.chars().next_back() {
         s.pop();
     }
@@ -225,7 +234,11 @@ fn prompt() -> String {
 }
 
 fn read_input() -> Options {
-    let len: usize = ask("Enter the length desired [unsigned int only]: ", "Please input valid length ( > 0 )", Some(|&x| x > 0));
+    let len: usize = ask(
+        "Enter the length desired [unsigned int only]: ",
+        "Please input valid length ( > 0 )",
+        Some(|&x| x > 0),
+    );
     let allowed: Letters = ask(
         "Select the options specified below to generate:
         1 - lowercase [a-z]
